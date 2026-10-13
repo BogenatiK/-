@@ -29,6 +29,13 @@
     canvas.style.width = W + "px";
     canvas.style.height = H + "px";
     ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+
+    // Пересчёт позиции паруса
+    if (state.sail) {
+      state.sail.y = H - 70;
+      state.sail.x = clamp(state.sail.x || W / 2, state.sail.r, W - state.sail.r);
+      state.sail.r = clamp(Math.min(W, H) * 0.05, 20, 32);
+    }
   }
 
   window.addEventListener("resize", resize);
@@ -38,35 +45,35 @@
   const DIFFICULTY = {
     easy: {
       label: "Лёгкий",
-      worldSpeed: 180,          // px/сек, скорость «движения» мира справа налево
+      fallSpeed: 180,           // px/сек — базовая скорость падения
       drainPerSec: 3.5,         // % заряда в секунду
       beamHealAmount: 12,       // % за пойманный луч
-      beamSpawnInterval: 1400,  // мс
-      asteroidSpawnInterval: 1600,
-      asteroidMinSize: 26,
-      asteroidMaxSize: 40,
+      beamSpawnInterval: 1300,  // мс
+      asteroidSpawnInterval: 1700,
+      asteroidMinSize: 24,
+      asteroidMaxSize: 38,
       tripDuration: 45          // сек до Марса
     },
     medium: {
       label: "Средний",
-      worldSpeed: 260,
+      fallSpeed: 260,
       drainPerSec: 5,
       beamHealAmount: 9,
-      beamSpawnInterval: 1100,
-      asteroidSpawnInterval: 1100,
-      asteroidMinSize: 24,
-      asteroidMaxSize: 46,
+      beamSpawnInterval: 1000,
+      asteroidSpawnInterval: 1150,
+      asteroidMinSize: 22,
+      asteroidMaxSize: 44,
       tripDuration: 60
     },
     hard: {
       label: "Сложный",
-      worldSpeed: 360,
+      fallSpeed: 360,
       drainPerSec: 7,
       beamHealAmount: 6,
-      beamSpawnInterval: 900,
-      asteroidSpawnInterval: 780,
-      asteroidMinSize: 22,
-      asteroidMaxSize: 52,
+      beamSpawnInterval: 820,
+      asteroidSpawnInterval: 800,
+      asteroidMinSize: 20,
+      asteroidMaxSize: 50,
       tripDuration: 75
     }
   };
@@ -78,15 +85,14 @@
     config: DIFFICULTY.easy,
     sail: { x: 0, y: 0, r: 26, angle: 0 },
     pointer: { x: 0, active: false },
-    objects: [],       // {type: 'beam'|'asteroid', x, y, r, vx, speedMul, spin, rot, points[]}
+    objects: [],       // {type, x, y, r, vy, ...}
     battery: 100,
-    progress: 0,       // 0..1
-    elapsed: 0,        // сек с начала полёта
+    progress: 0,
+    elapsed: 0,
     lastSpawnBeam: 0,
     lastSpawnAsteroid: 0,
     lastFrameTime: 0,
-    rafId: null,
-    shakeTime: 0
+    rafId: null
   };
 
   // ---------- Утилиты ----------
@@ -115,12 +121,10 @@
     const r = 12;
     state.objects.push({
       type: "beam",
-      x: W + r + 20,
-      y: randRange(r + 60, H - r - 60),
+      x: randRange(r + 10, W - r - 10),
+      y: -r - 20,
       r,
-      vx: -(state.config.worldSpeed + randRange(-20, 20)),
-      angle: 0,
-      spin: 0,
+      vy: state.config.fallSpeed * randRange(0.95, 1.1),
       rot: 0
     });
   }
@@ -141,13 +145,12 @@
     const r = randRange(cfg.asteroidMinSize, cfg.asteroidMaxSize);
     state.objects.push({
       type: "asteroid",
-      x: W + r + 30,
-      y: randRange(r + 30, H - r - 30),
+      x: randRange(r + 10, W - r - 10),
+      y: -r - 30,
       r,
-      vx: -(cfg.worldSpeed * randRange(0.9, 1.15)),
-      angle: 0,
-      spin: randRange(-1.2, 1.2),
+      vy: cfg.fallSpeed * randRange(0.9, 1.2),
       rot: randRange(0, Math.PI * 2),
+      spin: randRange(-1.4, 1.4),
       points: makeAsteroidShape(r)
     });
   }
@@ -155,20 +158,16 @@
   // ---------- Обновление ----------
   function updateSail(dt) {
     const sail = state.sail;
-
-    // Парус двигается только по горизонтали
     const targetX = state.pointer.active ? state.pointer.x : W / 2;
 
-    // Плавное следование
-    sail.x += (targetX - sail.x) * 0.22;
+    sail.x += (targetX - sail.x) * 0.25;
+    sail.x = clamp(sail.x, sail.r, W - sail.r);
 
-    // Наклон в сторону движения — для визуала
+    // Наклон в сторону движения
     const desiredTilt = clamp((targetX - sail.x) * 0.01, -0.5, 0.5);
     sail.angle += (desiredTilt - sail.angle) * 0.2;
 
-    // Ограничение
-    sail.x = clamp(sail.x, sail.r, W - sail.r);
-    sail.y = H * 0.55; // фиксированная высота — «полёт вперёд»
+    sail.y = H - 70;
   }
 
   function circleVsSail(obj) {
@@ -180,13 +179,11 @@
 
   function updateObjects(dt) {
     const cfg = state.config;
-    const sail = state.sail;
 
     for (let i = state.objects.length - 1; i >= 0; i--) {
       const o = state.objects[i];
-      o.x += o.vx * dt;
+      o.y += o.vy * dt;
 
-      // Вращение астероида
       if (o.type === "asteroid") o.rot += o.spin * dt;
 
       // Столкновение
@@ -196,14 +193,13 @@
           state.objects.splice(i, 1);
           continue;
         } else {
-          // Астероид — мгновенный проигрыш
           endGame("asteroid");
           return;
         }
       }
 
-      // Вылетел за пределы экрана слева
-      if (o.x + o.r < -40) {
+      // Улетел вниз
+      if (o.y - o.r > H + 40) {
         state.objects.splice(i, 1);
       }
     }
@@ -212,20 +208,16 @@
   function updateProgressAndBattery(dt) {
     const cfg = state.config;
 
-    // Прогресс — равномерно по времени
     state.elapsed += dt;
     state.progress = clamp(state.elapsed / cfg.tripDuration, 0, 1);
 
-    // Расход заряда
     state.battery -= cfg.drainPerSec * dt;
 
-    // Обновление HUD
     batteryFill.style.width = Math.max(0, state.battery) + "%";
     batteryValue.textContent = Math.max(0, Math.round(state.battery)) + "%";
     progressFill.style.width = (state.progress * 100) + "%";
     progressValue.textContent = Math.round((1 - state.progress) * 100) + "%";
 
-    // Проверки конца
     if (state.battery <= 0) {
       endGame("battery");
       return;
@@ -237,7 +229,6 @@
 
   // ---------- Отрисовка ----------
   function drawBackground() {
-    // Звёздное небо — мягкий градиент
     const g = ctx.createLinearGradient(0, 0, 0, H);
     g.addColorStop(0, "#050a1c");
     g.addColorStop(0.5, "#081226");
@@ -245,23 +236,29 @@
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, W, H);
 
-    // Смещающиеся звёзды — эффект движения вперёд
-    const t = state.elapsed * state.config.worldSpeed;
-    for (let i = 0; i < 90; i++) {
-      const baseX = (i * 97.31) % W;
-      const sx = ((baseX - t * 0.4) % W + W) % W;
-      const sy = ((i * 53.17) % H);
+    // Звёзды, летящие вниз — эффект движения
+    const t = state.elapsed * state.config.fallSpeed;
+    for (let i = 0; i < 100; i++) {
+      const baseY = (i * 61.37) % H;
+      const sy = ((baseY + t * 0.5) % H + H) % H;
+      const sx = ((i * 97.31) % W);
       const size = (i % 3 === 0) ? 1.6 : 1;
-      ctx.fillStyle = "rgba(180, 210, 255, 0.6)";
+      ctx.fillStyle = "rgba(180, 210, 255, 0.55)";
       ctx.fillRect(sx, sy, size, size);
     }
 
-    // Полоса «тени» снизу — визуальная опора
-    const shade = ctx.createLinearGradient(0, H * 0.7, 0, H);
-    shade.addColorStop(0, "rgba(10, 20, 50, 0)");
-    shade.addColorStop(1, "rgba(5, 10, 25, 0.85)");
-    ctx.fillStyle = shade;
-    ctx.fillRect(0, H * 0.7, W, H * 0.3);
+    // Марс вдалеке сверху
+    const mx = W / 2;
+    const my = 60;
+    const mr = 22;
+    const grad = ctx.createRadialGradient(mx - mr * 0.3, my - mr * 0.3, mr * 0.2, mx, my, mr);
+    grad.addColorStop(0, "#ffb27a");
+    grad.addColorStop(0.7, "#c85a3a");
+    grad.addColorStop(1, "#5a2418");
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(mx, my, mr, 0, Math.PI * 2);
+    ctx.fill();
   }
 
   function drawBeam(o) {
@@ -275,15 +272,15 @@
     ctx.arc(o.x, o.y, o.r * 3, 0, Math.PI * 2);
     ctx.fill();
 
-    // Хвост
-    const tail = ctx.createLinearGradient(o.x + o.r * 3, o.y, o.x - o.r * 4, o.y);
-    tail.addColorStop(0, "rgba(255, 230, 140, 0.6)");
-    tail.addColorStop(1, "rgba(255, 230, 140, 0)");
+    // Хвост сверху (луч летит вниз — хвост тянется вверх)
+    const tail = ctx.createLinearGradient(o.x, o.y - o.r * 3, o.x, o.y + o.r);
+    tail.addColorStop(0, "rgba(255, 230, 140, 0)");
+    tail.addColorStop(1, "rgba(255, 230, 140, 0.65)");
     ctx.fillStyle = tail;
     ctx.beginPath();
-    ctx.moveTo(o.x, o.y - o.r * 0.7);
-    ctx.lineTo(o.x + o.r * 4, o.y);
-    ctx.lineTo(o.x, o.y + o.r * 0.7);
+    ctx.moveTo(o.x - o.r * 0.7, o.y);
+    ctx.lineTo(o.x, o.y - o.r * 4);
+    ctx.lineTo(o.x + o.r * 0.7, o.y);
     ctx.closePath();
     ctx.fill();
 
@@ -314,7 +311,7 @@
     ctx.fillStyle = grad;
     ctx.fill();
 
-    // Крапинки
+    // Кратеры
     ctx.fillStyle = "rgba(0, 0, 0, 0.35)";
     for (let i = 0; i < 3; i++) {
       const a = (i * 2.1) % (Math.PI * 2);
@@ -341,9 +338,9 @@
     ctx.arc(0, 0, sail.r * 2.4, 0, Math.PI * 2);
     ctx.fill();
 
-    // Корпус — круглая капсула с парусом
     ctx.rotate(sail.angle);
 
+    // Корпус
     ctx.beginPath();
     ctx.arc(0, 0, sail.r, 0, Math.PI * 2);
     ctx.fillStyle = "rgba(30, 60, 110, 0.95)";
@@ -352,7 +349,7 @@
     ctx.strokeStyle = "#ffe27a";
     ctx.stroke();
 
-    // Треугольный парус
+    // Парус
     ctx.beginPath();
     ctx.moveTo(-sail.r * 0.15, -sail.r * 0.75);
     ctx.lineTo(sail.r * 0.85, 0);
@@ -362,23 +359,6 @@
     ctx.fill();
 
     ctx.restore();
-
-    // Планета-цель вверху справа — маленький Марс
-    drawDestination();
-  }
-
-  function drawDestination() {
-    const mx = W - 60;
-    const my = H * 0.18;
-    const r = 16;
-    const g = ctx.createRadialGradient(mx - r * 0.3, my - r * 0.3, r * 0.2, mx, my, r);
-    g.addColorStop(0, "#ffb27a");
-    g.addColorStop(0.7, "#c85a3a");
-    g.addColorStop(1, "#5a2418");
-    ctx.fillStyle = g;
-    ctx.beginPath();
-    ctx.arc(mx, my, r, 0, Math.PI * 2);
-    ctx.fill();
   }
 
   function render() {
@@ -411,7 +391,7 @@
 
     updateSail(dt);
     updateObjects(dt);
-    if (!state.running) return; // если произошёл проигрыш
+    if (!state.running) return;
     updateProgressAndBattery(dt);
     if (!state.running) return;
 
@@ -432,17 +412,17 @@
     state.elapsed = 0;
     state.lastFrameTime = 0;
 
-    state.sail.x = W / 2;
-    state.sail.y = H * 0.55;
     state.sail.r = clamp(Math.min(W, H) * 0.05, 20, 32);
+    state.sail.x = W / 2;
+    state.sail.y = H - 70;
     state.sail.angle = 0;
 
     state.pointer.x = W / 2;
     state.pointer.active = false;
 
     const t = performance.now();
-    state.lastSpawnBeam = t + 600;       // первый луч чуть позже старта
-    state.lastSpawnAsteroid = t + 1200;  // первый астероид ещё позже
+    state.lastSpawnBeam = t + 700;       // первый луч с задержкой
+    state.lastSpawnAsteroid = t + 1300;  // первый астероид чуть позже
 
     batteryFill.style.width = "100%";
     batteryValue.textContent = "100%";
