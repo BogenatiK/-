@@ -22,7 +22,6 @@
         <span class="hud-label">До Марса</span>
         <span id="progress-value" class="hud-value">100%</span>
       </div>
-      <!-- Новый индикатор выбранного паруса -->
       <div class="hud-item">
         <span class="hud-label">Парус</span>
         <span id="hud-sail-name" class="hud-value" style="font-size: 13px;">Стандарт</span>
@@ -50,7 +49,7 @@
       <p class="hint">Управление: движение мыши или пальца влево-вправо</p>
     </div>
 
-    <!-- ЭКРАН 2: Выбор паруса (НОВЫЙ) -->
+    <!-- ЭКРАН 2: Выбор паруса -->
     <div id="ship-screen" class="overlay hidden">
       <h1 class="title">Выбор паруса</h1>
       <p class="subtitle">От размера паруса зависят маневренность, скорость полета и расход энергии.</p>
@@ -72,15 +71,16 @@
         </button>
       </div>
 
-      <button id="start-game-btn" class="btn" style="margin-top: 30px; background: linear-gradient(180deg, #4CAF50, #2E7D32); border-color: #81C784;">Начать полет</button>
+      <button id="start-game-btn" class="btn" style="margin-top: 20px; background: linear-gradient(180deg, #4CAF50, #2E7D32); border-color: #81C784;">Начать полет</button>
       <button id="back-to-diff-btn" class="btn btn-secondary">Назад к сложности</button>
     </div>
 
+    <!-- ЭКРАН 3: Результат -->
     <div id="result-screen" class="overlay hidden">
       <h1 id="result-title" class="title">Результат</h1>
       <p id="result-text" class="subtitle"></p>
       <button id="restart-btn" class="btn">Заново</button>
-      <button id="menu-btn" class="btn btn-secondary">Выбрать сложность</button>
+      <button id="menu-btn" class="btn btn-secondary">В главное меню</button>
     </div>
   </div>
 
