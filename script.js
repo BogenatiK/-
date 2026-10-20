@@ -1,276 +1,3 @@
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-html, body {
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-  background: #05070f;
-  font-family: "Segoe UI", Roboto, Arial, sans-serif;
-  color: #eaf2ff;
-  -webkit-user-select: none;
-  user-select: none;
-  -webkit-tap-highlight-color: transparent;
-}
-
-#game-wrap {
-  position: relative;
-  width: 100vw;
-  height: 100vh;
-  overflow: hidden;
-  touch-action: none;
-}
-
-#game-canvas {
-  position: absolute;
-  inset: 0;
-  display: block;
-  width: 100%;
-  height: 100%;
-  background: #05070f;
-}
-
-/* ---------- HUD ---------- */
-#hud {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  gap: 10px;
-  padding: calc(10px + env(safe-area-inset-top)) 14px 10px;
-  pointer-events: none;
-  z-index: 5;
-}
-
-.hud-item {
-  display: flex;
-  flex-direction: column;
-  background: rgba(10, 20, 40, 0.55);
-  -webkit-backdrop-filter: blur(4px);
-  backdrop-filter: blur(4px);
-  border: 1px solid rgba(120, 190, 255, 0.35);
-  border-radius: 10px;
-  padding: 6px 12px;
-  min-width: 100px;
-  text-align: center;
-}
-
-.hud-label {
-  font-size: 11px;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-  color: #8fb8e8;
-}
-
-.hud-value {
-  font-size: 16px;
-  font-weight: 700;
-  color: #ffe27a;
-  font-variant-numeric: tabular-nums;
-}
-
-/* Полоска батареи */
-.battery {
-  width: 100%;
-  height: 8px;
-  border-radius: 5px;
-  background: rgba(255, 255, 255, 0.12);
-  overflow: hidden;
-  margin: 5px 0 3px;
-}
-
-.battery-fill {
-  height: 100%;
-  width: 100%;
-  background: linear-gradient(90deg, #ff5f5f, #ffd76a, #8affa1);
-  background-size: 300% 100%;
-  background-position: 50% 0;
-  transition: width 0.15s linear;
-}
-
-/* ---------- Прогресс-бар полёта ---------- */
-#progress-bar {
-  position: absolute;
-  left: 14px;
-  right: 14px;
-  bottom: calc(14px + env(safe-area-inset-bottom));
-  height: 6px;
-  border-radius: 3px;
-  background: rgba(255, 255, 255, 0.12);
-  overflow: visible;
-  z-index: 5;
-  pointer-events: none;
-}
-
-#progress-fill {
-  height: 100%;
-  width: 0%;
-  border-radius: 3px;
-  background: linear-gradient(90deg, #6ab7ff, #ffe27a);
-  box-shadow: 0 0 12px rgba(255, 210, 90, 0.6);
-  transition: width 0.2s linear;
-}
-
-.progress-label {
-  position: absolute;
-  top: -18px;
-  font-size: 10px;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-  color: #8fb8e8;
-}
-
-.progress-label-start { left: 0; }
-.progress-label-end   { right: 0; color: #ffb27a; }
-
-/* ---------- Оверлеи ---------- */
-.overlay {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 24px;
-  background: radial-gradient(circle at 50% 40%, rgba(30, 60, 120, 0.85), rgba(3, 6, 15, 0.95));
-  z-index: 10;
-  text-align: center;
-  opacity: 1;
-  transition: opacity 0.25s ease;
-}
-
-.overlay.hidden {
-  display: flex;
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
-  transition: opacity 0.25s ease, visibility 0s 0.25s;
-}
-
-.title {
-  font-size: clamp(28px, 7vw, 48px);
-  font-weight: 800;
-  letter-spacing: 1px;
-  color: #ffe27a;
-  text-shadow: 0 0 24px rgba(255, 210, 90, 0.6);
-  margin-bottom: 10px;
-}
-
-.subtitle {
-  font-size: clamp(14px, 3.6vw, 18px);
-  color: #cfe1ff;
-  max-width: 480px;
-  margin-bottom: 22px;
-  line-height: 1.45;
-}
-
-.difficulty-buttons {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  width: min(320px, 90vw);
-}
-
-.btn {
-  appearance: none;
-  border: 1px solid rgba(140, 200, 255, 0.5);
-  background: linear-gradient(180deg, #2a4a80, #16283f);
-  color: #eaf2ff;
-  font-size: clamp(15px, 4vw, 18px);
-  font-weight: 600;
-  padding: 14px 22px;
-  border-radius: 12px;
-  cursor: pointer;
-  transition: transform 0.12s ease, box-shadow 0.15s ease, background 0.15s ease;
-  touch-action: manipulation;
-}
-
-@media (hover: hover) {
-  .btn:hover {
-    background: linear-gradient(180deg, #35619f, #1c3450);
-    box-shadow: 0 0 18px rgba(120, 190, 255, 0.45);
-  }
-}
-
-.btn:focus-visible {
-  outline: 2px solid #ffe27a;
-  outline-offset: 3px;
-}
-
-.btn:active {
-  transform: scale(0.97);
-}
-
-.btn-secondary {
-  background: linear-gradient(180deg, #3a3a4a, #1e1e2a);
-  border-color: rgba(180, 180, 200, 0.4);
-  margin-top: 10px;
-}
-
-@media (hover: hover) {
-  .btn-secondary:hover {
-    background: linear-gradient(180deg, #4a4a60, #262634);
-    box-shadow: 0 0 14px rgba(180, 180, 200, 0.35);
-  }
-}
-
-.hint {
-  margin-top: 24px;
-  font-size: clamp(12px, 3vw, 14px);
-  color: #7fa3d1;
-}
-
-/* ---------- Выбор паруса ---------- */
-.ships-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  width: min(400px, 90vw);
-  margin-top: 10px;
-}
-
-.ship-btn {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 12px;
-  background: linear-gradient(180deg, #1f2e45, #101822);
-  border: 1px solid rgba(140, 200, 255, 0.3);
-  color: #aecbfa;
-}
-
-.ship-btn.active {
-  background: linear-gradient(180deg, #2a4a80, #16283f);
-  border-color: #ffe27a;
-  color: #fff;
-  box-shadow: 0 0 15px rgba(255, 226, 122, 0.3);
-}
-
-.ship-name {
-  font-size: clamp(16px, 4vw, 20px);
-  font-weight: 700;
-  color: #ffe27a;
-  margin-bottom: 4px;
-}
-
-.ship-desc {
-  font-size: clamp(11px, 2.5vw, 13px);
-  line-height: 1.4;
-  color: #8fb8e8;
-  text-align: center;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .btn, .overlay, #progress-fill, .battery-fill { transition: none; }
-}
-3. script.js
-javascript
 (function () {
   "use strict";
 
@@ -322,64 +49,16 @@ javascript
 
   // ---------- Сложность ----------
   const DIFFICULTY = {
-    easy: {
-      label: "Лёгкий",
-      fallSpeed: 180,
-      drainPerSec: 3.5,
-      beamHealAmount: 12,
-      beamSpawnInterval: 1300,
-      asteroidSpawnInterval: 1700,
-      asteroidMinSize: 24,
-      asteroidMaxSize: 38,
-      tripDuration: 45
-    },
-    medium: {
-      label: "Средний",
-      fallSpeed: 260,
-      drainPerSec: 5,
-      beamHealAmount: 9,
-      beamSpawnInterval: 1000,
-      asteroidSpawnInterval: 1150,
-      asteroidMinSize: 22,
-      asteroidMaxSize: 44,
-      tripDuration: 60
-    },
-    hard: {
-      label: "Сложный",
-      fallSpeed: 360,
-      drainPerSec: 7,
-      beamHealAmount: 6,
-      beamSpawnInterval: 820,
-      asteroidSpawnInterval: 800,
-      asteroidMinSize: 20,
-      asteroidMaxSize: 50,
-      tripDuration: 75
-    }
+    easy: { label: "Лёгкий", fallSpeed: 180, drainPerSec: 3.5, beamHealAmount: 12, beamSpawnInterval: 1300, asteroidSpawnInterval: 1700, asteroidMinSize: 24, asteroidMaxSize: 38, tripDuration: 45 },
+    medium: { label: "Средний", fallSpeed: 260, drainPerSec: 5, beamHealAmount: 9, beamSpawnInterval: 1000, asteroidSpawnInterval: 1150, asteroidMinSize: 22, asteroidMaxSize: 44, tripDuration: 60 },
+    hard: { label: "Сложный", fallSpeed: 360, drainPerSec: 7, beamHealAmount: 6, beamSpawnInterval: 820, asteroidSpawnInterval: 800, asteroidMinSize: 20, asteroidMaxSize: 50, tripDuration: 75 }
   };
 
   // ---------- Паруса ----------
   const SHIPS = {
-    small: {
-      label: "Малый",
-      sizeModifier: 0.75,
-      drainMultiplier: 0.7,
-      tripTimeMultiplier: 1.3,
-      maneuverability: 0.40
-    },
-    medium: {
-      label: "Стандарт",
-      sizeModifier: 1.0,
-      drainMultiplier: 1.0,
-      tripTimeMultiplier: 1.0,
-      maneuverability: 0.25
-    },
-    large: {
-      label: "Крупный",
-      sizeModifier: 1.35,
-      drainMultiplier: 1.25,
-      tripTimeMultiplier: 0.75,
-      maneuverability: 0.15
-    }
+    small:  { label: "Малый",    sizeModifier: 0.75, drainMultiplier: 0.7,  tripTimeMultiplier: 1.3,  maneuverability: 0.40 },
+    medium: { label: "Стандарт", sizeModifier: 1.0,  drainMultiplier: 1.0,  tripTimeMultiplier: 1.0,  maneuverability: 0.25 },
+    large:  { label: "Крупный",  sizeModifier: 1.35, drainMultiplier: 1.25, tripTimeMultiplier: 0.75, maneuverability: 0.15 }
   };
 
   // ---------- Состояние ----------
@@ -425,14 +104,7 @@ javascript
   // ---------- Спавн ----------
   function spawnBeam() {
     const r = 12;
-    state.objects.push({
-      type: "beam",
-      x: randRange(r + 10, W - r - 10),
-      y: -r - 20,
-      r,
-      vy: state.config.fallSpeed * randRange(0.95, 1.1),
-      rot: 0
-    });
+    state.objects.push({ type: "beam", x: randRange(r + 10, W - r - 10), y: -r - 20, r, vy: state.config.fallSpeed * randRange(0.95, 1.1), rot: 0 });
   }
 
   function makeAsteroidShape(r) {
@@ -620,6 +292,44 @@ javascript
       ctx.arc(Math.cos(a) * rr, Math.sin(a) * rr, o.r * 0.12, 0, Math.PI * 2);
       ctx.fill();
     }
+    ctx.restore();
+  }
+
+  // Вспомогательная функция — рисует одно ромбовидное полотно паруса
+  function drawSolarPanel(cx, cy, dx1, dy1, dx2, dy2, rot) {
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(rot);
+
+    const w = Math.hypot(dx1 - dx2, dy1 - dy2) * 1.6;
+    const h = Math.hypot(dx1 + dx2, dy1 + dy2) * 0.6 + w * 0.35;
+
+    ctx.beginPath();
+    ctx.moveTo(0, -h / 2);
+    ctx.lineTo(w / 2, 0);
+    ctx.lineTo(0, h / 2);
+    ctx.lineTo(-w / 2, 0);
+    ctx.closePath();
+
+    const g = ctx.createLinearGradient(-w / 2, 0, w / 2, 0);
+    g.addColorStop(0, "rgba(255, 226, 122, 0.95)");
+    g.addColorStop(0.5, "rgba(200, 170, 90, 0.85)");
+    g.addColorStop(1, "rgba(120, 100, 60, 0.75)");
+    ctx.fillStyle = g;
+    ctx.fill();
+
+    ctx.strokeStyle = "rgba(255, 240, 180, 0.85)";
+    ctx.lineWidth = 1;
+    ctx.stroke();
+
+    ctx.strokeStyle = "rgba(80, 70, 40, 0.5)";
+    ctx.lineWidth = 0.8;
+    ctx.beginPath();
+    ctx.moveTo(0, -h / 2);
+    ctx.lineTo(0, h / 2);
+    ctx.moveTo(-w / 2, 0);
+    ctx.lineTo(w / 2, 0);
+    ctx.stroke();
 
     ctx.restore();
   }
@@ -712,23 +422,140 @@ javascript
     ctx.restore();
   }
 
-  function drawSolarPanel(cx, cy, dx1, dy1, dx2, dy2, rot) {
-    ctx.save();
-    ctx.translate(cx, cy);
-    ctx.rotate(rot);
+  function render() {
+    drawBackground();
+    for (const o of state.objects) {
+      if (o.type === "beam") drawBeam(o);
+      else drawAsteroid(o);
+    }
+    drawSail();
+  }
 
-    const w = Math.hypot(dx1 - dx2, dy1 - dy2) * 1.6;
-    const h = Math.hypot(dx1 + dx2, dy1 + dy2) * 0.6 + w * 0.35;
+  // ---------- Игровой цикл ----------
+  function loop(now) {
+    if (!state.running) return;
 
-    ctx.beginPath();
-    ctx.moveTo(0, -h / 2);
-    ctx.lineTo(w / 2, 0);
-    ctx.lineTo(0, h / 2);
-    ctx.lineTo(-w / 2, 0);
-    ctx.closePath();
+    if (state.lastFrameTime === 0) state.lastFrameTime = now;
+    let dt = (now - state.lastFrameTime) / 1000;
+    state.lastFrameTime = now;
+    if (dt > 0.05) dt = 0.05;
 
-    const g = ctx.createLinearGradient(-w / 2, 0, w / 2, 0);
-    g.addColorStop(0, "rgba(255, 226, 122, 0.95)");
-    g.addColorStop(0.5, "rgba(200, 170, 90, 0.85)");
-    g.addColorStop(1, "rgba(120, 100, 60, 0.75)");
-    ctx.fill
+    if (now - state.lastSpawnBeam >= state.config.beamSpawnInterval) {
+      state.lastSpawnBeam = now;
+      spawnBeam();
+    }
+    if (now - state.lastSpawnAsteroid >= state.config.asteroidSpawnInterval) {
+      state.lastSpawnAsteroid = now;
+      spawnAsteroid();
+    }
+
+    updateSail(dt);
+    updateObjects(dt);
+    if (!state.running) return;
+    updateProgressAndBattery(dt);
+    if (!state.running) return;
+
+    render();
+    state.rafId = requestAnimationFrame(loop);
+  }
+
+  // ---------- Управление игрой ----------
+  function startGame() {
+    state.running = true;
+    state.objects = [];
+    state.battery = 100;
+    state.progress = 0;
+    state.elapsed = 0;
+    state.lastFrameTime = 0;
+
+    const baseR = clamp(Math.min(W, H) * 0.05, 20, 32);
+    state.sail.r = baseR * state.shipConfig.sizeModifier;
+    
+    state.sail.x = W / 2;
+    state.sail.y = H - 70;
+    state.sail.angle = 0;
+
+    state.pointer.x = W / 2;
+    state.pointer.active = false;
+
+    const t = performance.now();
+    state.lastSpawnBeam = t + 700;
+    state.lastSpawnAsteroid = t + 1300;
+
+    batteryFill.style.width = "100%";
+    batteryValue.textContent = "100%";
+    progressFill.style.width = "0%";
+    progressValue.textContent = "100%";
+
+    hudSailName.textContent = state.shipConfig.label;
+
+    menuScreen.classList.add("hidden");
+    shipScreen.classList.add("hidden");
+    resultScreen.classList.add("hidden");
+
+    if (state.rafId) cancelAnimationFrame(state.rafId);
+    state.rafId = requestAnimationFrame(loop);
+  }
+
+  function endGame(reason) {
+    state.running = false;
+    if (state.rafId) {
+      cancelAnimationFrame(state.rafId);
+      state.rafId = null;
+    }
+
+    if (reason === "win") {
+      resultTitle.textContent = "Марс достигнут!";
+      resultText.textContent = "Сложность: " + state.config.label + " (Парус: " + state.shipConfig.label + "). Остаток заряда: " + Math.round(state.battery) + "%.";
+    } else if (reason === "battery") {
+      resultTitle.textContent = "Заряд исчерпан";
+      resultText.textContent = "Парус остался в дрейфе на " + Math.round(state.progress * 100) + "% пути к Марсу.";
+    } else if (reason === "asteroid") {
+      resultTitle.textContent = "Столкновение!";
+      resultText.textContent = "Астероид разрушил парус на " + Math.round(state.progress * 100) + "% пути к Марсу.";
+    }
+
+    resultScreen.classList.remove("hidden");
+  }
+
+  function goToMenu() {
+    state.running = false;
+    if (state.rafId) {
+      cancelAnimationFrame(state.rafId);
+      state.rafId = null;
+    }
+    resultScreen.classList.add("hidden");
+    shipScreen.classList.add("hidden");
+    menuScreen.classList.remove("hidden");
+  }
+
+  // ---------- Кнопки ----------
+  difficultyBtns.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      state.difficulty = btn.dataset.difficulty;
+      state.config = DIFFICULTY[state.difficulty];
+      menuScreen.classList.add("hidden");
+      shipScreen.classList.remove("hidden");
+    });
+  });
+
+  shipBtns.forEach((btn) => {
+    btn.addEventListener("click", () => {
+      shipBtns.forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      state.shipType = btn.dataset.ship;
+      state.shipConfig = SHIPS[state.shipType];
+    });
+  });
+
+  startGameBtn.addEventListener("click", startGame);
+  backToDiffBtn.addEventListener("click", () => {
+    shipScreen.classList.add("hidden");
+    menuScreen.classList.remove("hidden");
+  });
+  restartBtn.addEventListener("click", startGame);
+  menuBtn.addEventListener("click", goToMenu);
+
+  // ---------- Init ----------
+  resize();
+})();
