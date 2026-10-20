@@ -599,3 +599,41 @@ function drawSolarPanel(cx, cy, dx1, dy1, dx2, dy2, rot) {
   // ---------- Init ----------
   resize();
 })();
+.ships-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: min(400px, 90vw);
+  margin-top: 10px;
+}
+
+.ship-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 12px;
+  background: linear-gradient(180deg, #1f2e45, #101822);
+  border: 1px solid rgba(140, 200, 255, 0.3);
+  color: #aecbfa;
+}
+
+.ship-btn.active {
+  background: linear-gradient(180deg, #2a4a80, #16283f);
+  border-color: #ffe27a;
+  color: #fff;
+  box-shadow: 0 0 15px rgba(255, 226, 122, 0.3);
+}
+
+.ship-name {
+  font-size: clamp(16px, 4vw, 20px);
+  font-weight: 700;
+  color: #ffe27a;
+  margin-bottom: 4px;
+}
+
+.ship-desc {
+  font-size: clamp(11px, 2.5vw, 13px);
+  line-height: 1.4;
+  color: #8fb8e8;
+  text-align: center;
+}
