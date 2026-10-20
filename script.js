@@ -1,3 +1,276 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #05070f;
+  font-family: "Segoe UI", Roboto, Arial, sans-serif;
+  color: #eaf2ff;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+#game-wrap {
+  position: relative;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  touch-action: none;
+}
+
+#game-canvas {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: #05070f;
+}
+
+/* ---------- HUD ---------- */
+#hud {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10px;
+  padding: calc(10px + env(safe-area-inset-top)) 14px 10px;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.hud-item {
+  display: flex;
+  flex-direction: column;
+  background: rgba(10, 20, 40, 0.55);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+  border: 1px solid rgba(120, 190, 255, 0.35);
+  border-radius: 10px;
+  padding: 6px 12px;
+  min-width: 100px;
+  text-align: center;
+}
+
+.hud-label {
+  font-size: 11px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: #8fb8e8;
+}
+
+.hud-value {
+  font-size: 16px;
+  font-weight: 700;
+  color: #ffe27a;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Полоска батареи */
+.battery {
+  width: 100%;
+  height: 8px;
+  border-radius: 5px;
+  background: rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+  margin: 5px 0 3px;
+}
+
+.battery-fill {
+  height: 100%;
+  width: 100%;
+  background: linear-gradient(90deg, #ff5f5f, #ffd76a, #8affa1);
+  background-size: 300% 100%;
+  background-position: 50% 0;
+  transition: width 0.15s linear;
+}
+
+/* ---------- Прогресс-бар полёта ---------- */
+#progress-bar {
+  position: absolute;
+  left: 14px;
+  right: 14px;
+  bottom: calc(14px + env(safe-area-inset-bottom));
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.12);
+  overflow: visible;
+  z-index: 5;
+  pointer-events: none;
+}
+
+#progress-fill {
+  height: 100%;
+  width: 0%;
+  border-radius: 3px;
+  background: linear-gradient(90deg, #6ab7ff, #ffe27a);
+  box-shadow: 0 0 12px rgba(255, 210, 90, 0.6);
+  transition: width 0.2s linear;
+}
+
+.progress-label {
+  position: absolute;
+  top: -18px;
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: #8fb8e8;
+}
+
+.progress-label-start { left: 0; }
+.progress-label-end   { right: 0; color: #ffb27a; }
+
+/* ---------- Оверлеи ---------- */
+.overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: radial-gradient(circle at 50% 40%, rgba(30, 60, 120, 0.85), rgba(3, 6, 15, 0.95));
+  z-index: 10;
+  text-align: center;
+  opacity: 1;
+  transition: opacity 0.25s ease;
+}
+
+.overlay.hidden {
+  display: flex;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.25s ease, visibility 0s 0.25s;
+}
+
+.title {
+  font-size: clamp(28px, 7vw, 48px);
+  font-weight: 800;
+  letter-spacing: 1px;
+  color: #ffe27a;
+  text-shadow: 0 0 24px rgba(255, 210, 90, 0.6);
+  margin-bottom: 10px;
+}
+
+.subtitle {
+  font-size: clamp(14px, 3.6vw, 18px);
+  color: #cfe1ff;
+  max-width: 480px;
+  margin-bottom: 22px;
+  line-height: 1.45;
+}
+
+.difficulty-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: min(320px, 90vw);
+}
+
+.btn {
+  appearance: none;
+  border: 1px solid rgba(140, 200, 255, 0.5);
+  background: linear-gradient(180deg, #2a4a80, #16283f);
+  color: #eaf2ff;
+  font-size: clamp(15px, 4vw, 18px);
+  font-weight: 600;
+  padding: 14px 22px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: transform 0.12s ease, box-shadow 0.15s ease, background 0.15s ease;
+  touch-action: manipulation;
+}
+
+@media (hover: hover) {
+  .btn:hover {
+    background: linear-gradient(180deg, #35619f, #1c3450);
+    box-shadow: 0 0 18px rgba(120, 190, 255, 0.45);
+  }
+}
+
+.btn:focus-visible {
+  outline: 2px solid #ffe27a;
+  outline-offset: 3px;
+}
+
+.btn:active {
+  transform: scale(0.97);
+}
+
+.btn-secondary {
+  background: linear-gradient(180deg, #3a3a4a, #1e1e2a);
+  border-color: rgba(180, 180, 200, 0.4);
+  margin-top: 10px;
+}
+
+@media (hover: hover) {
+  .btn-secondary:hover {
+    background: linear-gradient(180deg, #4a4a60, #262634);
+    box-shadow: 0 0 14px rgba(180, 180, 200, 0.35);
+  }
+}
+
+.hint {
+  margin-top: 24px;
+  font-size: clamp(12px, 3vw, 14px);
+  color: #7fa3d1;
+}
+
+/* ---------- Выбор паруса ---------- */
+.ships-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: min(400px, 90vw);
+  margin-top: 10px;
+}
+
+.ship-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 12px;
+  background: linear-gradient(180deg, #1f2e45, #101822);
+  border: 1px solid rgba(140, 200, 255, 0.3);
+  color: #aecbfa;
+}
+
+.ship-btn.active {
+  background: linear-gradient(180deg, #2a4a80, #16283f);
+  border-color: #ffe27a;
+  color: #fff;
+  box-shadow: 0 0 15px rgba(255, 226, 122, 0.3);
+}
+
+.ship-name {
+  font-size: clamp(16px, 4vw, 20px);
+  font-weight: 700;
+  color: #ffe27a;
+  margin-bottom: 4px;
+}
+
+.ship-desc {
+  font-size: clamp(11px, 2.5vw, 13px);
+  line-height: 1.4;
+  color: #8fb8e8;
+  text-align: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn, .overlay, #progress-fill, .battery-fill { transition: none; }
+}
+3. script.js
+javascript
 (function () {
   "use strict";
 
@@ -8,14 +281,20 @@
   const batteryValue = document.getElementById("battery-value");
   const progressValue = document.getElementById("progress-value");
   const progressFill = document.getElementById("progress-fill");
+  const hudSailName = document.getElementById("hud-sail-name");
 
   const menuScreen = document.getElementById("menu-screen");
+  const shipScreen = document.getElementById("ship-screen");
   const resultScreen = document.getElementById("result-screen");
   const resultTitle = document.getElementById("result-title");
   const resultText = document.getElementById("result-text");
+  
   const restartBtn = document.getElementById("restart-btn");
   const menuBtn = document.getElementById("menu-btn");
   const difficultyBtns = document.querySelectorAll(".difficulty-btn");
+  const shipBtns = document.querySelectorAll(".ship-btn");
+  const startGameBtn = document.getElementById("start-game-btn");
+  const backToDiffBtn = document.getElementById("back-to-diff-btn");
 
   // ---------- Размеры ----------
   let W = 0, H = 0, DPR = 1;
@@ -30,11 +309,11 @@
     canvas.style.height = H + "px";
     ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
 
-    // Пересчёт позиции паруса
     if (state.sail) {
       state.sail.y = H - 70;
       state.sail.x = clamp(state.sail.x || W / 2, state.sail.r, W - state.sail.r);
-      state.sail.r = clamp(Math.min(W, H) * 0.05, 20, 32);
+      const baseR = clamp(Math.min(W, H) * 0.05, 20, 32);
+      state.sail.r = baseR * state.shipConfig.sizeModifier;
     }
   }
 
@@ -45,14 +324,14 @@
   const DIFFICULTY = {
     easy: {
       label: "Лёгкий",
-      fallSpeed: 180,           // px/сек — базовая скорость падения
-      drainPerSec: 3.5,         // % заряда в секунду
-      beamHealAmount: 12,       // % за пойманный луч
-      beamSpawnInterval: 1300,  // мс
+      fallSpeed: 180,
+      drainPerSec: 3.5,
+      beamHealAmount: 12,
+      beamSpawnInterval: 1300,
       asteroidSpawnInterval: 1700,
       asteroidMinSize: 24,
       asteroidMaxSize: 38,
-      tripDuration: 45          // сек до Марса
+      tripDuration: 45
     },
     medium: {
       label: "Средний",
@@ -78,14 +357,41 @@
     }
   };
 
+  // ---------- Паруса ----------
+  const SHIPS = {
+    small: {
+      label: "Малый",
+      sizeModifier: 0.75,
+      drainMultiplier: 0.7,
+      tripTimeMultiplier: 1.3,
+      maneuverability: 0.40
+    },
+    medium: {
+      label: "Стандарт",
+      sizeModifier: 1.0,
+      drainMultiplier: 1.0,
+      tripTimeMultiplier: 1.0,
+      maneuverability: 0.25
+    },
+    large: {
+      label: "Крупный",
+      sizeModifier: 1.35,
+      drainMultiplier: 1.25,
+      tripTimeMultiplier: 0.75,
+      maneuverability: 0.15
+    }
+  };
+
   // ---------- Состояние ----------
   const state = {
     running: false,
     difficulty: "easy",
     config: DIFFICULTY.easy,
+    shipType: "medium",
+    shipConfig: SHIPS.medium,
     sail: { x: 0, y: 0, r: 26, angle: 0 },
     pointer: { x: 0, active: false },
-    objects: [],       // {type, x, y, r, vy, ...}
+    objects: [],
     battery: 100,
     progress: 0,
     elapsed: 0,
@@ -116,7 +422,7 @@
     e.preventDefault();
   }, { passive: false });
 
-  // ---------- Спавн объектов ----------
+  // ---------- Спавн ----------
   function spawnBeam() {
     const r = 12;
     state.objects.push({
@@ -159,13 +465,13 @@
   function updateSail(dt) {
     const sail = state.sail;
     const targetX = state.pointer.active ? state.pointer.x : W / 2;
+    const smoothFactor = state.shipConfig.maneuverability;
 
-    sail.x += (targetX - sail.x) * 0.25;
+    sail.x += (targetX - sail.x) * smoothFactor;
     sail.x = clamp(sail.x, sail.r, W - sail.r);
 
-    // Наклон в сторону движения
     const desiredTilt = clamp((targetX - sail.x) * 0.01, -0.5, 0.5);
-    sail.angle += (desiredTilt - sail.angle) * 0.2;
+    sail.angle += (desiredTilt - sail.angle) * smoothFactor;
 
     sail.y = H - 70;
   }
@@ -186,7 +492,6 @@
 
       if (o.type === "asteroid") o.rot += o.spin * dt;
 
-      // Столкновение
       if (circleVsSail(o)) {
         if (o.type === "beam") {
           state.battery = Math.min(100, state.battery + cfg.beamHealAmount);
@@ -198,7 +503,6 @@
         }
       }
 
-      // Улетел вниз
       if (o.y - o.r > H + 40) {
         state.objects.splice(i, 1);
       }
@@ -207,11 +511,13 @@
 
   function updateProgressAndBattery(dt) {
     const cfg = state.config;
+    const ship = state.shipConfig;
 
     state.elapsed += dt;
-    state.progress = clamp(state.elapsed / cfg.tripDuration, 0, 1);
-
-    state.battery -= cfg.drainPerSec * dt;
+    
+    const actualTripDuration = cfg.tripDuration * ship.tripTimeMultiplier;
+    state.progress = clamp(state.elapsed / actualTripDuration, 0, 1);
+    state.battery -= cfg.drainPerSec * ship.drainMultiplier * dt;
 
     batteryFill.style.width = Math.max(0, state.battery) + "%";
     batteryValue.textContent = Math.max(0, Math.round(state.battery)) + "%";
@@ -236,7 +542,6 @@
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, W, H);
 
-    // Звёзды, летящие вниз — эффект движения
     const t = state.elapsed * state.config.fallSpeed;
     for (let i = 0; i < 100; i++) {
       const baseY = (i * 61.37) % H;
@@ -247,7 +552,6 @@
       ctx.fillRect(sx, sy, size, size);
     }
 
-    // Марс вдалеке сверху
     const mx = W / 2;
     const my = 60;
     const mr = 22;
@@ -262,7 +566,6 @@
   }
 
   function drawBeam(o) {
-    // Свечение
     const glow = ctx.createRadialGradient(o.x, o.y, 0, o.x, o.y, o.r * 3);
     glow.addColorStop(0, "rgba(255, 240, 160, 0.95)");
     glow.addColorStop(0.4, "rgba(255, 210, 100, 0.5)");
@@ -272,7 +575,6 @@
     ctx.arc(o.x, o.y, o.r * 3, 0, Math.PI * 2);
     ctx.fill();
 
-    // Хвост сверху (луч летит вниз — хвост тянется вверх)
     const tail = ctx.createLinearGradient(o.x, o.y - o.r * 3, o.x, o.y + o.r);
     tail.addColorStop(0, "rgba(255, 230, 140, 0)");
     tail.addColorStop(1, "rgba(255, 230, 140, 0.65)");
@@ -284,7 +586,6 @@
     ctx.closePath();
     ctx.fill();
 
-    // Ядро
     ctx.beginPath();
     ctx.arc(o.x, o.y, o.r, 0, Math.PI * 2);
     ctx.fillStyle = "#fff4c2";
@@ -311,7 +612,6 @@
     ctx.fillStyle = grad;
     ctx.fill();
 
-    // Кратеры
     ctx.fillStyle = "rgba(0, 0, 0, 0.35)";
     for (let i = 0; i < 3; i++) {
       const a = (i * 2.1) % (Math.PI * 2);
@@ -324,316 +624,111 @@
     ctx.restore();
   }
 
-function drawSail() {
-  const sail = state.sail;
-  ctx.save();
-  ctx.translate(sail.x, sail.y);
+  function drawSail() {
+    const sail = state.sail;
+    ctx.save();
+    ctx.translate(sail.x, sail.y);
 
-  // Мягкое свечение вокруг всего корабля
-  const glow = ctx.createRadialGradient(0, 0, sail.r * 0.5, 0, 0, sail.r * 3);
-  glow.addColorStop(0, "rgba(255, 220, 120, 0.35)");
-  glow.addColorStop(1, "rgba(255, 220, 120, 0)");
-  ctx.fillStyle = glow;
-  ctx.beginPath();
-  ctx.arc(0, 0, sail.r * 3, 0, Math.PI * 2);
-  ctx.fill();
+    const glow = ctx.createRadialGradient(0, 0, sail.r * 0.5, 0, 0, sail.r * 3);
+    glow.addColorStop(0, "rgba(255, 220, 120, 0.35)");
+    glow.addColorStop(1, "rgba(255, 220, 120, 0)");
+    ctx.fillStyle = glow;
+    ctx.beginPath();
+    ctx.arc(0, 0, sail.r * 3, 0, Math.PI * 2);
+    ctx.fill();
 
-  // Базовый поворот корпуса: нос смотрит вправо
-  ctx.rotate(Math.PI / 2);
+    ctx.rotate(Math.PI / 2);
+    ctx.rotate(sail.angle);
 
-  // Лёгкий наклон в сторону движения (теперь он тоже работает «вправо-вниз»)
-  ctx.rotate(sail.angle);
+    const R = sail.r;
 
-  const R = sail.r;
+    drawSolarPanel(-R * 1.55, -R * 1.55, -R * 0.4, -R * 0.4, R * 0.55, -R * 0.15, -Math.PI / 4);
+    drawSolarPanel(-R * 1.55,  R * 1.55, -R * 0.4,  R * 0.4, R * 0.55,  R * 0.15,  Math.PI / 4);
+    drawSolarPanel( R * 1.5,  -R * 0.7,  R * 0.35, -R * 0.25, R * 0.45, -R * 0.1, -Math.PI / 6);
+    drawSolarPanel( R * 1.5,   R * 0.7,  R * 0.35,  R * 0.25, R * 0.45,  R * 0.1,  Math.PI / 6);
 
-  // ---------- Солнечные паруса (4 полотна) ----------
-  // Каждое — ромбовидное полотно на лёгкой штанге.
-  // Верхние и нижние пары слегка наклонены назад, чтобы читался объём.
+    ctx.strokeStyle = "rgba(200, 220, 255, 0.7)";
+    ctx.lineWidth = Math.max(1, R * 0.06);
+    ctx.beginPath();
+    ctx.moveTo(0, -R * 0.55);
+    ctx.lineTo(-R * 0.55, -R * 0.85);
+    ctx.moveTo(0,  R * 0.55);
+    ctx.lineTo(-R * 0.55,  R * 0.85);
+    ctx.moveTo(0, -R * 0.55);
+    ctx.lineTo( R * 0.6, -R * 0.45);
+    ctx.moveTo(0,  R * 0.55);
+    ctx.lineTo( R * 0.6,  R * 0.45);
+    ctx.stroke();
 
-  // Верхний парус (вперёд-вверх)
-  drawSolarPanel(-R * 1.55, -R * 1.55, -R * 0.4, -R * 0.4, R * 0.55, -R * 0.15, -Math.PI / 4);
-  // Нижний парус (вперёд-вниз)
-  drawSolarPanel(-R * 1.55,  R * 1.55, -R * 0.4,  R * 0.4, R * 0.55,  R * 0.15,  Math.PI / 4);
+    const hullGrad = ctx.createLinearGradient(-R * 1.3, 0, R * 1.1, 0);
+    hullGrad.addColorStop(0, "#cfe1ff");
+    hullGrad.addColorStop(0.5, "#7fa3d1");
+    hullGrad.addColorStop(1, "#2a3b5c");
 
-  // Задние (короткие) паруса — симметрично сзади
-  drawSolarPanel( R * 1.5,  -R * 0.7,  R * 0.35, -R * 0.25, R * 0.45, -R * 0.1, -Math.PI / 6);
-  drawSolarPanel( R * 1.5,   R * 0.7,  R * 0.35,  R * 0.25, R * 0.45,  R * 0.1,  Math.PI / 6);
+    ctx.beginPath();
+    ctx.moveTo(-R * 1.35, 0);
+    ctx.quadraticCurveTo(-R * 0.7, -R * 0.55, 0, -R * 0.55);
+    ctx.lineTo( R * 0.9, -R * 0.5);
+    ctx.quadraticCurveTo( R * 1.15, 0,  R * 0.9,  R * 0.5);
+    ctx.lineTo(0,  R * 0.55);
+    ctx.quadraticCurveTo(-R * 0.7, R * 0.55, -R * 1.35, 0);
+    ctx.closePath();
+    ctx.fillStyle = hullGrad;
+    ctx.fill();
+    ctx.lineWidth = Math.max(1.5, R * 0.07);
+    ctx.strokeStyle = "#ffe27a";
+    ctx.stroke();
 
-  // ---------- Штанги, соединяющие паруса с корпусом ----------
-  ctx.strokeStyle = "rgba(200, 220, 255, 0.7)";
-  ctx.lineWidth = Math.max(1, R * 0.06);
-  ctx.beginPath();
-  // Верхняя передняя
-  ctx.moveTo(0, -R * 0.55);
-  ctx.lineTo(-R * 0.55, -R * 0.85);
-  // Нижняя передняя
-  ctx.moveTo(0,  R * 0.55);
-  ctx.lineTo(-R * 0.55,  R * 0.85);
-  // Верхняя задняя
-  ctx.moveTo(0, -R * 0.55);
-  ctx.lineTo( R * 0.6, -R * 0.45);
-  // Нижняя задняя
-  ctx.moveTo(0,  R * 0.55);
-  ctx.lineTo( R * 0.6,  R * 0.45);
-  ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(-R * 1.0, -R * 0.15);
+    ctx.quadraticCurveTo(-R * 0.3, -R * 0.42,  R * 0.7, -R * 0.32);
+    ctx.lineTo( R * 0.7, -R * 0.2);
+    ctx.quadraticCurveTo(-R * 0.3, -R * 0.28, -R * 1.0, 0);
+    ctx.closePath();
+    ctx.fillStyle = "rgba(255, 255, 255, 0.35)";
+    ctx.fill();
 
-  // ---------- Корпус-капсула ----------
-  // Основной сигарообразный корпус, ориентированный «вперёд» = влево (к Марсу)
-  const hullGrad = ctx.createLinearGradient(-R * 1.3, 0, R * 1.1, 0);
-  hullGrad.addColorStop(0, "#cfe1ff");
-  hullGrad.addColorStop(0.5, "#7fa3d1");
-  hullGrad.addColorStop(1, "#2a3b5c");
+    ctx.beginPath();
+    ctx.arc(-R * 0.55, 0, R * 0.16, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(120, 200, 255, 0.9)";
+    ctx.fill();
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.7)";
+    ctx.lineWidth = Math.max(1, R * 0.04);
+    ctx.stroke();
 
-  ctx.beginPath();
-  ctx.moveTo(-R * 1.35, 0);                       // нос
-  ctx.quadraticCurveTo(-R * 0.7, -R * 0.55, 0, -R * 0.55);
-  ctx.lineTo( R * 0.9, -R * 0.5);
-  ctx.quadraticCurveTo( R * 1.15, 0,  R * 0.9,  R * 0.5);
-  ctx.lineTo(0,  R * 0.55);
-  ctx.quadraticCurveTo(-R * 0.7, R * 0.55, -R * 1.35, 0);
-  ctx.closePath();
-  ctx.fillStyle = hullGrad;
-  ctx.fill();
-  ctx.lineWidth = Math.max(1.5, R * 0.07);
-  ctx.strokeStyle = "#ffe27a";
-  ctx.stroke();
+    const engine = ctx.createRadialGradient(R * 1.0, 0, 0, R * 1.0, 0, R * 0.9);
+    engine.addColorStop(0, "rgba(255, 200, 100, 0.9)");
+    engine.addColorStop(1, "rgba(255, 120, 40, 0)");
+    ctx.fillStyle = engine;
+    ctx.beginPath();
+    ctx.arc(R * 1.0, 0, R * 0.9, 0, Math.PI * 2);
+    ctx.fill();
 
-  // Блик сверху корпуса
-  ctx.beginPath();
-  ctx.moveTo(-R * 1.0, -R * 0.15);
-  ctx.quadraticCurveTo(-R * 0.3, -R * 0.42,  R * 0.7, -R * 0.32);
-  ctx.lineTo( R * 0.7, -R * 0.2);
-  ctx.quadraticCurveTo(-R * 0.3, -R * 0.28, -R * 1.0, 0);
-  ctx.closePath();
-  ctx.fillStyle = "rgba(255, 255, 255, 0.35)";
-  ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(R * 1.05, 0, R * 0.25, R * 0.14, 0, 0, Math.PI * 2);
+    ctx.fillStyle = "#fff4c2";
+    ctx.fill();
 
-  // Иллюминатор
-  ctx.beginPath();
-  ctx.arc(-R * 0.55, 0, R * 0.16, 0, Math.PI * 2);
-  ctx.fillStyle = "rgba(120, 200, 255, 0.9)";
-  ctx.fill();
-  ctx.strokeStyle = "rgba(255, 255, 255, 0.7)";
-  ctx.lineWidth = Math.max(1, R * 0.04);
-  ctx.stroke();
-
-  // Двигатель сзади — лёгкое свечение пламени
-  const engine = ctx.createRadialGradient(R * 1.0, 0, 0, R * 1.0, 0, R * 0.9);
-  engine.addColorStop(0, "rgba(255, 200, 100, 0.9)");
-  engine.addColorStop(1, "rgba(255, 120, 40, 0)");
-  ctx.fillStyle = engine;
-  ctx.beginPath();
-  ctx.arc(R * 1.0, 0, R * 0.9, 0, Math.PI * 2);
-  ctx.fill();
-
-  // Ядро пламени
-  ctx.beginPath();
-  ctx.ellipse(R * 1.05, 0, R * 0.25, R * 0.14, 0, 0, Math.PI * 2);
-  ctx.fillStyle = "#fff4c2";
-  ctx.fill();
-
-  ctx.restore();
-}
-
-// Вспомогательная функция — рисует одно ромбовидное полотно паруса
-function drawSolarPanel(cx, cy, dx1, dy1, dx2, dy2, rot) {
-  ctx.save();
-  ctx.translate(cx, cy);
-  ctx.rotate(rot);
-
-  const w = Math.hypot(dx1 - dx2, dy1 - dy2) * 1.6; // ширина полотна
-  const h = Math.hypot(dx1 + dx2, dy1 + dy2) * 0.6 + w * 0.35; // высота полотна
-
-  // Полотно — ромб
-  ctx.beginPath();
-  ctx.moveTo(0, -h / 2);
-  ctx.lineTo(w / 2, 0);
-  ctx.lineTo(0, h / 2);
-  ctx.lineTo(-w / 2, 0);
-  ctx.closePath();
-
-  // Градиент — «солнечная» сторона светлее, обратная темнее
-  const g = ctx.createLinearGradient(-w / 2, 0, w / 2, 0);
-  g.addColorStop(0, "rgba(255, 226, 122, 0.95)");
-  g.addColorStop(0.5, "rgba(200, 170, 90, 0.85)");
-  g.addColorStop(1, "rgba(120, 100, 60, 0.75)");
-  ctx.fillStyle = g;
-  ctx.fill();
-
-  // Тонкая обводка
-  ctx.strokeStyle = "rgba(255, 240, 180, 0.85)";
-  ctx.lineWidth = 1;
-  ctx.stroke();
-
-  // Сетка на полотне — тонкие линии, имитирующие ячейки
-  ctx.strokeStyle = "rgba(80, 70, 40, 0.5)";
-  ctx.lineWidth = 0.8;
-  ctx.beginPath();
-  ctx.moveTo(0, -h / 2);
-  ctx.lineTo(0, h / 2);
-  ctx.moveTo(-w / 2, 0);
-  ctx.lineTo(w / 2, 0);
-  ctx.stroke();
-
-  ctx.restore();
-}
-  function render() {
-    drawBackground();
-    for (const o of state.objects) {
-      if (o.type === "beam") drawBeam(o);
-      else drawAsteroid(o);
-    }
-    drawSail();
+    ctx.restore();
   }
 
-  // ---------- Игровой цикл ----------
-  function loop(now) {
-    if (!state.running) return;
+  function drawSolarPanel(cx, cy, dx1, dy1, dx2, dy2, rot) {
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(rot);
 
-    if (state.lastFrameTime === 0) state.lastFrameTime = now;
-    let dt = (now - state.lastFrameTime) / 1000;
-    state.lastFrameTime = now;
-    if (dt > 0.05) dt = 0.05;
+    const w = Math.hypot(dx1 - dx2, dy1 - dy2) * 1.6;
+    const h = Math.hypot(dx1 + dx2, dy1 + dy2) * 0.6 + w * 0.35;
 
-    // Спавн
-    if (now - state.lastSpawnBeam >= state.config.beamSpawnInterval) {
-      state.lastSpawnBeam = now;
-      spawnBeam();
-    }
-    if (now - state.lastSpawnAsteroid >= state.config.asteroidSpawnInterval) {
-      state.lastSpawnAsteroid = now;
-      spawnAsteroid();
-    }
+    ctx.beginPath();
+    ctx.moveTo(0, -h / 2);
+    ctx.lineTo(w / 2, 0);
+    ctx.lineTo(0, h / 2);
+    ctx.lineTo(-w / 2, 0);
+    ctx.closePath();
 
-    updateSail(dt);
-    updateObjects(dt);
-    if (!state.running) return;
-    updateProgressAndBattery(dt);
-    if (!state.running) return;
-
-    render();
-
-    state.rafId = requestAnimationFrame(loop);
-  }
-
-  // ---------- Управление игрой ----------
-  function startGame(key) {
-    state.difficulty = key;
-    state.config = DIFFICULTY[key];
-
-    state.running = true;
-    state.objects = [];
-    state.battery = 100;
-    state.progress = 0;
-    state.elapsed = 0;
-    state.lastFrameTime = 0;
-
-    state.sail.r = clamp(Math.min(W, H) * 0.05, 20, 32);
-    state.sail.x = W / 2;
-    state.sail.y = H - 70;
-    state.sail.angle = 0;
-
-    state.pointer.x = W / 2;
-    state.pointer.active = false;
-
-    const t = performance.now();
-    state.lastSpawnBeam = t + 700;       // первый луч с задержкой
-    state.lastSpawnAsteroid = t + 1300;  // первый астероид чуть позже
-
-    batteryFill.style.width = "100%";
-    batteryValue.textContent = "100%";
-    progressFill.style.width = "0%";
-    progressValue.textContent = "100%";
-
-    menuScreen.classList.add("hidden");
-    resultScreen.classList.add("hidden");
-
-    if (state.rafId) cancelAnimationFrame(state.rafId);
-    state.rafId = requestAnimationFrame(loop);
-  }
-
-  function endGame(reason) {
-    state.running = false;
-    if (state.rafId) {
-      cancelAnimationFrame(state.rafId);
-      state.rafId = null;
-    }
-
-    if (reason === "win") {
-      resultTitle.textContent = "Марс достигнут!";
-      resultText.textContent =
-        "Сложность: " + state.config.label +
-        ". Остаток заряда: " + Math.round(state.battery) + "%.";
-    } else if (reason === "battery") {
-      resultTitle.textContent = "Заряд исчерпан";
-      resultText.textContent =
-        "Парус остался в дрейфе на " +
-        Math.round(state.progress * 100) + "% пути к Марсу.";
-    } else if (reason === "asteroid") {
-      resultTitle.textContent = "Столкновение!";
-      resultText.textContent =
-        "Астероид разрушил парус на " +
-        Math.round(state.progress * 100) + "% пути к Марсу.";
-    }
-
-    resultScreen.classList.remove("hidden");
-  }
-
-  function goToMenu() {
-    state.running = false;
-    if (state.rafId) {
-      cancelAnimationFrame(state.rafId);
-      state.rafId = null;
-    }
-    resultScreen.classList.add("hidden");
-    menuScreen.classList.remove("hidden");
-  }
-
-  // ---------- Кнопки ----------
-  difficultyBtns.forEach((btn) => {
-    btn.addEventListener("click", () => startGame(btn.dataset.difficulty));
-  });
-  restartBtn.addEventListener("click", () => startGame(state.difficulty));
-  menuBtn.addEventListener("click", goToMenu);
-
-  // ---------- Init ----------
-  resize();
-})();
-.ships-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  width: min(400px, 90vw);
-  margin-top: 10px;
-}
-
-.ship-btn {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 12px;
-  background: linear-gradient(180deg, #1f2e45, #101822);
-  border: 1px solid rgba(140, 200, 255, 0.3);
-  color: #aecbfa;
-}
-
-.ship-btn.active {
-  background: linear-gradient(180deg, #2a4a80, #16283f);
-  border-color: #ffe27a;
-  color: #fff;
-  box-shadow: 0 0 15px rgba(255, 226, 122, 0.3);
-}
-
-.ship-name {
-  font-size: clamp(16px, 4vw, 20px);
-  font-weight: 700;
-  color: #ffe27a;
-  margin-bottom: 4px;
-}
-
-.ship-desc {
-  font-size: clamp(11px, 2.5vw, 13px);
-  line-height: 1.4;
-  color: #8fb8e8;
-  text-align: center;
-}
+    const g = ctx.createLinearGradient(-w / 2, 0, w / 2, 0);
+    g.addColorStop(0, "rgba(255, 226, 122, 0.95)");
+    g.addColorStop(0.5, "rgba(200, 170, 90, 0.85)");
+    g.addColorStop(1, "rgba(120, 100, 60, 0.75)");
+    ctx.fill
