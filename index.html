@@ -26,6 +26,10 @@
         <span class="hud-label">Парус</span>
         <span id="hud-sail-name" class="hud-value" style="font-size: 13px;">Стандарт</span>
       </div>
+      <div class="hud-item">
+        <span class="hud-label">Лучи</span>
+        <span id="hud-beams-value" class="hud-value">0</span>
+      </div>
     </div>
 
     <div id="progress-bar">
@@ -71,6 +75,12 @@
         </button>
       </div>
 
+      <p class="hint" style="margin-top: 14px; max-width: 420px;">
+        Собирай лучи света. Накопив достаточно, ты сможешь активировать воронку —
+        гравитационный прыжок ускорит путь к Марсу на 25%.
+        Чем ближе к Марсу, тем больше лучей нужно для прыжка.
+      </p>
+
       <button id="start-game-btn" class="btn" style="margin-top: 20px; background: linear-gradient(180deg, #4CAF50, #2E7D32); border-color: #81C784;">Начать полет</button>
       <button id="back-to-diff-btn" class="btn btn-secondary">Назад к сложности</button>
     </div>
@@ -79,6 +89,7 @@
     <div id="result-screen" class="overlay hidden">
       <h1 id="result-title" class="title">Результат</h1>
       <p id="result-text" class="subtitle"></p>
+      <p id="result-beams" class="subtitle" style="margin-top: 4px;"></p>
       <button id="restart-btn" class="btn">Заново</button>
       <button id="menu-btn" class="btn btn-secondary">В главное меню</button>
     </div>
