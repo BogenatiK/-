@@ -9,13 +9,15 @@
   const progressValue = document.getElementById("progress-value");
   const progressFill = document.getElementById("progress-fill");
   const hudSailName = document.getElementById("hud-sail-name");
+  const hudBeamsValue = document.getElementById("hud-beams-value");
 
   const menuScreen = document.getElementById("menu-screen");
   const shipScreen = document.getElementById("ship-screen");
   const resultScreen = document.getElementById("result-screen");
   const resultTitle = document.getElementById("result-title");
   const resultText = document.getElementById("result-text");
-  
+  const resultBeams = document.getElementById("result-beams");
+
   const restartBtn = document.getElementById("restart-btn");
   const menuBtn = document.getElementById("menu-btn");
   const difficultyBtns = document.querySelectorAll(".difficulty-btn");
@@ -77,12 +79,26 @@
     lastSpawnBeam: 0,
     lastSpawnAsteroid: 0,
     lastFrameTime: 0,
-    rafId: null
+    rafId: null,
+
+    // --- новое ---
+    beamsCollected: 0,          // всего собрано лучей за полёт
+    wormholeSpawnedThisTrip: false,
+    wormhole: null,             // текущая воронка или null
+    jumpFlash: 0                // вспышка после прыжка
   };
 
   // ---------- Утилиты ----------
   const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
   const randRange = (a, b) => a + Math.random() * (b - a);
+
+  // Требуемое число лучей для активации воронки в зависимости от прогресса (0..1)
+  function requiredBeamsForWormhole(progress) {
+    // Ближе к Марсу — дороже. От 3 до 12 лучей.
+    const base = 3;
+    const span = 9;
+    return Math.round(base + span * clamp(progress, 0, 1));
+  }
 
   // ---------- Управление ----------
   function setPointer(clientX) {
@@ -133,6 +149,30 @@
     });
   }
 
+  // Воронка: появляется один раз за полёт в случайной части пути
+  function maybeSpawnWormhole() {
+    if (state.wormholeSpawnedThisTrip || state.wormhole) return;
+
+    // Случайная точка маршрута: от 20% до 80%
+    const trigger = randRange(0.2, 0.8);
+    if (state.progress < trigger) return;
+
+    state.wormholeSpawnedThisTrip = true;
+
+    const r = clamp(Math.min(W, H) * 0.09, 34, 56);
+    state.wormhole = {
+      type: "wormhole",
+      x: randRange(r + 10, W - r - 10),
+      y: -r - 40,
+      r,
+      vy: state.config.fallSpeed * 0.55,
+      rot: 0,
+      spin: randRange(0.5, 1.4),
+      requiredBeams: requiredBeamsForWormhole(state.progress),
+      activated: false
+    };
+  }
+
   // ---------- Обновление ----------
   function updateSail(dt) {
     const sail = state.sail;
@@ -167,6 +207,8 @@
       if (circleVsSail(o)) {
         if (o.type === "beam") {
           state.battery = Math.min(100, state.battery + cfg.beamHealAmount);
+          state.beamsCollected += 1;
+          hudBeamsValue.textContent = state.beamsCollected;
           state.objects.splice(i, 1);
           continue;
         } else {
@@ -179,6 +221,45 @@
         state.objects.splice(i, 1);
       }
     }
+
+    updateWormhole(dt);
+  }
+
+  function updateWormhole(dt) {
+    const wh = state.wormhole;
+    if (!wh) return;
+
+    wh.y += wh.vy * dt;
+    wh.rot += wh.spin * dt;
+
+    if (circleVsSail(wh)) {
+      if (!wh.activated) {
+        const required = requiredBeamsForWormhole(state.progress);
+        wh.requiredBeams = required;
+
+        if (state.beamsCollected >= required) {
+          // Активируем гравитационный прыжок
+          wh.activated = true;
+          state.beamsCollected -= required;
+          hudBeamsValue.textContent = state.beamsCollected;
+
+          // Ускоряем прогресс на 25%
+          state.progress = clamp(state.progress + 0.25, 0, 0.999);
+          state.elapsed = state.progress * getActualTripDuration();
+
+          state.jumpFlash = 1;
+        }
+        // Если лучей не хватило — пролетаем насквозь, воронка исчезает ниже
+      }
+    }
+
+    if (wh.y - wh.r > H + 60) {
+      state.wormhole = null;
+    }
+  }
+
+  function getActualTripDuration() {
+    return state.config.tripDuration * state.shipConfig.tripTimeMultiplier;
   }
 
   function updateProgressAndBattery(dt) {
@@ -186,10 +267,16 @@
     const ship = state.shipConfig;
 
     state.elapsed += dt;
-    
-    const actualTripDuration = cfg.tripDuration * ship.tripTimeMultiplier;
+
+    const actualTripDuration = getActualTripDuration();
     state.progress = clamp(state.elapsed / actualTripDuration, 0, 1);
     state.battery -= cfg.drainPerSec * ship.drainMultiplier * dt;
+
+    maybeSpawnWormhole();
+
+    if (state.jumpFlash > 0) {
+      state.jumpFlash = Math.max(0, state.jumpFlash - dt * 1.6);
+    }
 
     batteryFill.style.width = Math.max(0, state.battery) + "%";
     batteryValue.textContent = Math.max(0, Math.round(state.battery)) + "%";
@@ -235,6 +322,11 @@
     ctx.beginPath();
     ctx.arc(mx, my, mr, 0, Math.PI * 2);
     ctx.fill();
+
+    if (state.jumpFlash > 0) {
+      ctx.fillStyle = "rgba(140, 220, 255, " + (state.jumpFlash * 0.35) + ")";
+      ctx.fillRect(0, 0, W, H);
+    }
   }
 
   function drawBeam(o) {
@@ -292,6 +384,70 @@
       ctx.arc(Math.cos(a) * rr, Math.sin(a) * rr, o.r * 0.12, 0, Math.PI * 2);
       ctx.fill();
     }
+    ctx.restore();
+  }
+
+  function drawWormhole(wh) {
+    const required = requiredBeamsForWormhole(state.progress);
+    const canActivate = state.beamsCollected >= required;
+    const baseColor = wh.activated ? [120, 255, 200] : (canActivate ? [140, 220, 255] : [160, 150, 220]);
+
+    ctx.save();
+    ctx.translate(wh.x, wh.y);
+
+    // Внешнее свечение
+    const glow = ctx.createRadialGradient(0, 0, wh.r * 0.3, 0, 0, wh.r * 2.2);
+    glow.addColorStop(0, "rgba(" + baseColor[0] + "," + baseColor[1] + "," + baseColor[2] + ",0.55)");
+    glow.addColorStop(0.6, "rgba(" + baseColor[0] + "," + baseColor[1] + "," + baseColor[2] + ",0.18)");
+    glow.addColorStop(1, "rgba(" + baseColor[0] + "," + baseColor[1] + "," + baseColor[2] + ",0)");
+    ctx.fillStyle = glow;
+    ctx.beginPath();
+    ctx.arc(0, 0, wh.r * 2.2, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Спиральные рукава
+    ctx.rotate(wh.rot);
+    const arms = 3;
+    for (let a = 0; a < arms; a++) {
+      const start = (a / arms) * Math.PI * 2;
+      ctx.beginPath();
+      for (let t = 0; t <= 1; t += 0.04) {
+        const ang = start + t * Math.PI * 2.2;
+        const rad = wh.r * (0.25 + t * 0.9);
+        const x = Math.cos(ang) * rad;
+        const y = Math.sin(ang) * rad;
+        if (t === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.strokeStyle = "rgba(" + baseColor[0] + "," + baseColor[1] + "," + baseColor[2] + ",0.65)";
+      ctx.lineWidth = Math.max(2, wh.r * 0.08);
+      ctx.stroke();
+    }
+
+    // Тёмный центр
+    const core = ctx.createRadialGradient(0, 0, 0, 0, 0, wh.r * 0.7);
+    core.addColorStop(0, "rgba(5, 8, 18, 0.95)");
+    core.addColorStop(0.7, "rgba(20, 30, 55, 0.6)");
+    core.addColorStop(1, "rgba(40, 60, 100, 0)");
+    ctx.fillStyle = core;
+    ctx.beginPath();
+    ctx.arc(0, 0, wh.r * 0.7, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.rotate(-wh.rot);
+
+    // Индикатор требования
+    ctx.font = "bold " + Math.max(12, wh.r * 0.34) + "px 'Segoe UI', Arial, sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillStyle = canActivate ? "#aef7c8" : "#ffd7d7";
+    ctx.fillText(required + " ✦", 0, 0);
+
+    // Подпись
+    ctx.font = "600 " + Math.max(9, wh.r * 0.22) + "px 'Segoe UI', Arial, sans-serif";
+    ctx.fillStyle = canActivate ? "rgba(174,247,200,0.9)" : "rgba(200,200,220,0.7)";
+    ctx.fillText(canActivate ? "ПРЫЖОК" : "нужно лучей", 0, wh.r * 0.95);
+
     ctx.restore();
   }
 
@@ -428,6 +584,7 @@
       if (o.type === "beam") drawBeam(o);
       else drawAsteroid(o);
     }
+    if (state.wormhole) drawWormhole(state.wormhole);
     drawSail();
   }
 
@@ -468,9 +625,15 @@
     state.elapsed = 0;
     state.lastFrameTime = 0;
 
+    // сброс нового
+    state.beamsCollected = 0;
+    state.wormhole = null;
+    state.wormholeSpawnedThisTrip = false;
+    state.jumpFlash = 0;
+
     const baseR = clamp(Math.min(W, H) * 0.05, 20, 32);
     state.sail.r = baseR * state.shipConfig.sizeModifier;
-    
+
     state.sail.x = W / 2;
     state.sail.y = H - 70;
     state.sail.angle = 0;
@@ -486,8 +649,8 @@
     batteryValue.textContent = "100%";
     progressFill.style.width = "0%";
     progressValue.textContent = "100%";
-
     hudSailName.textContent = state.shipConfig.label;
+    hudBeamsValue.textContent = "0";
 
     menuScreen.classList.add("hidden");
     shipScreen.classList.add("hidden");
@@ -513,6 +676,9 @@
     } else if (reason === "asteroid") {
       resultTitle.textContent = "Столкновение!";
       resultText.textContent = "Астероид разрушил парус на " + Math.round(state.progress * 100) + "% пути к Марсу.";
+    }
+    if (resultBeams) {
+      resultBeams.textContent = "Собрано лучей света: " + state.beamsCollected;
     }
 
     resultScreen.classList.remove("hidden");
