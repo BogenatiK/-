@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Поймай луч: Земля → Марс</title>
+  <title>Поймай луч: Земля → Космос</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -19,12 +19,16 @@
         <span id="battery-value" class="hud-value">100%</span>
       </div>
       <div class="hud-item">
-        <span class="hud-label">До Марса</span>
+        <span class="hud-label">До цели</span>
         <span id="progress-value" class="hud-value">100%</span>
       </div>
       <div class="hud-item">
         <span class="hud-label">Парус</span>
         <span id="hud-sail-name" class="hud-value" style="font-size: 13px;">Стандарт</span>
+      </div>
+      <div class="hud-item">
+        <span class="hud-label">Цель</span>
+        <span id="hud-planet-name" class="hud-value" style="font-size: 13px;">Марс</span>
       </div>
       <div class="hud-item">
         <span class="hud-label">Лучи</span>
@@ -35,12 +39,12 @@
     <div id="progress-bar">
       <div id="progress-fill"></div>
       <span class="progress-label progress-label-start">Земля</span>
-      <span class="progress-label progress-label-end">Марс</span>
+      <span id="progress-label-end" class="progress-label progress-label-end">Марс</span>
     </div>
 
     <!-- ЭКРАН 1: Выбор сложности -->
     <div id="menu-screen" class="overlay">
-      <h1 class="title">Земля → Марс</h1>
+      <h1 class="title">Земля → Космос</h1>
       <p class="subtitle">
         Управляй солнечным парусом, лови лучи для подзарядки
         и уклоняйся от астероидов.
@@ -53,22 +57,30 @@
       <p class="hint">Управление: движение мыши или пальца влево-вправо</p>
     </div>
 
-    <!-- ЭКРАН 2: Выбор паруса -->
+    <!-- ЭКРАН 2: Выбор пункта назначения -->
+    <div id="planet-screen" class="overlay hidden">
+      <h1 class="title">Куда летим?</h1>
+      <p class="subtitle">Выбери пункт назначения. Чем дальше планета, тем больше энергии потребуется.</p>
+      <div class="planets-grid" id="planets-grid"></div>
+      <button id="back-to-diff-btn-2" class="btn btn-secondary" style="margin-top: 18px;">Назад к сложности</button>
+    </div>
+
+    <!-- ЭКРАН 3: Выбор паруса -->
     <div id="ship-screen" class="overlay hidden">
       <h1 class="title">Выбор паруса</h1>
       <p class="subtitle">От размера паруса зависят маневренность, скорость полета и расход энергии.</p>
-      
+
       <div class="ships-grid">
         <button class="btn ship-btn" data-ship="small">
           <span class="ship-name">Малый</span>
           <span class="ship-desc">Максимальная маневренность<br>Низкий расход энергии<br>Долгий полет</span>
         </button>
-        
+
         <button class="btn ship-btn active" data-ship="medium">
           <span class="ship-name">Стандарт</span>
           <span class="ship-desc">Сбалансированные характеристики<br>Средний расход энергии<br>Средний полет</span>
         </button>
-        
+
         <button class="btn ship-btn" data-ship="large">
           <span class="ship-name">Крупный</span>
           <span class="ship-desc">Низкая маневренность<br>Высокий расход энергии<br>Быстрый полет</span>
@@ -77,15 +89,15 @@
 
       <p class="hint" style="margin-top: 14px; max-width: 420px;">
         Собирай лучи света. Накопив достаточно, ты сможешь активировать воронку —
-        гравитационный прыжок ускорит путь к Марсу на 25%.
-        Чем ближе к Марсу, тем больше лучей нужно для прыжка.
+        гравитационный прыжок ускорит путь к цели на 25%.
+        Чем ближе к цели, тем больше лучей нужно для прыжка.
       </p>
 
       <button id="start-game-btn" class="btn" style="margin-top: 20px; background: linear-gradient(180deg, #4CAF50, #2E7D32); border-color: #81C784;">Начать полет</button>
-      <button id="back-to-diff-btn" class="btn btn-secondary">Назад к сложности</button>
+      <button id="back-to-planet-btn" class="btn btn-secondary">Назад к выбору планеты</button>
     </div>
 
-    <!-- ЭКРАН 3: Результат -->
+    <!-- ЭКРАН 4: Результат -->
     <div id="result-screen" class="overlay hidden">
       <h1 id="result-title" class="title">Результат</h1>
       <p id="result-text" class="subtitle"></p>
@@ -96,5 +108,7 @@
   </div>
 
   <script src="script.js"></script>
+</body>
+</html>
 </body>
 </html>
