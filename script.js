@@ -8,10 +8,13 @@
   const batteryValue = document.getElementById("battery-value");
   const progressValue = document.getElementById("progress-value");
   const progressFill = document.getElementById("progress-fill");
+  const progressLabelEnd = document.getElementById("progress-label-end");
   const hudSailName = document.getElementById("hud-sail-name");
+  const hudPlanetName = document.getElementById("hud-planet-name");
   const hudBeamsValue = document.getElementById("hud-beams-value");
 
   const menuScreen = document.getElementById("menu-screen");
+  const planetScreen = document.getElementById("planet-screen");
   const shipScreen = document.getElementById("ship-screen");
   const resultScreen = document.getElementById("result-screen");
   const resultTitle = document.getElementById("result-title");
@@ -23,7 +26,9 @@
   const difficultyBtns = document.querySelectorAll(".difficulty-btn");
   const shipBtns = document.querySelectorAll(".ship-btn");
   const startGameBtn = document.getElementById("start-game-btn");
-  const backToDiffBtn = document.getElementById("back-to-diff-btn");
+  const backToDiffBtn2 = document.getElementById("back-to-diff-btn-2");
+  const backToPlanetBtn = document.getElementById("back-to-planet-btn");
+  const planetsGrid = document.getElementById("planets-grid");
 
   // ---------- Размеры ----------
   let W = 0, H = 0, DPR = 1;
@@ -63,6 +68,52 @@
     large:  { label: "Крупный",  sizeModifier: 1.35, drainMultiplier: 1.25, tripTimeMultiplier: 0.75, maneuverability: 0.15 }
   };
 
+  // ---------- Планеты ----------
+  const PLANETS = {
+    moon: {
+      label: "Луна", difficulty: "easy",
+      color1: "#e8e8e8", color2: "#8a8f99", color3: "#3c3f46",
+      radius: 18, hasRing: false, durationMultiplier: 0.8,
+      desc: "Близко и безопасно"
+    },
+    mars: {
+      label: "Марс", difficulty: "easy",
+      color1: "#ffb27a", color2: "#c85a3a", color3: "#5a2418",
+      radius: 24, hasRing: false, durationMultiplier: 1.0,
+      desc: "Стандартная миссия"
+    },
+    venus: {
+      label: "Венера", difficulty: "medium",
+      color1: "#ffe9a8", color2: "#e0b86a", color3: "#7a5a2a",
+      radius: 22, hasRing: false, durationMultiplier: 1.1,
+      desc: "Плотная атмосфера"
+    },
+    jupiter: {
+      label: "Юпитер", difficulty: "medium",
+      color1: "#f3d9b0", color2: "#c08a5a", color3: "#5a3a1e",
+      radius: 34, hasRing: false, durationMultiplier: 1.35,
+      desc: "Газовый гигант"
+    },
+    saturn: {
+      label: "Сатурн", difficulty: "hard",
+      color1: "#f2e2b0", color2: "#c8a35a", color3: "#6b4a1e",
+      radius: 30, hasRing: true, durationMultiplier: 1.5,
+      desc: "Кольца и дальний путь"
+    },
+    neptune: {
+      label: "Нептун", difficulty: "hard",
+      color1: "#a8d4ff", color2: "#3a6bd6", color3: "#12264a",
+      radius: 26, hasRing: false, durationMultiplier: 1.7,
+      desc: "Ледяной гигант"
+    }
+  };
+
+  const PLANETS_BY_DIFFICULTY = {
+    easy:   ["moon", "mars"],
+    medium: ["venus", "jupiter"],
+    hard:   ["saturn", "neptune"]
+  };
+
   // ---------- Состояние ----------
   const state = {
     running: false,
@@ -70,6 +121,8 @@
     config: DIFFICULTY.easy,
     shipType: "medium",
     shipConfig: SHIPS.medium,
+    planetKey: "mars",
+    planetConfig: PLANETS.mars,
     sail: { x: 0, y: 0, r: 26, angle: 0 },
     pointer: { x: 0, active: false },
     objects: [],
@@ -81,20 +134,17 @@
     lastFrameTime: 0,
     rafId: null,
 
-    // --- новое ---
-    beamsCollected: 0,          // всего собрано лучей за полёт
+    beamsCollected: 0,
     wormholeSpawnedThisTrip: false,
-    wormhole: null,             // текущая воронка или null
-    jumpFlash: 0                // вспышка после прыжка
+    wormhole: null,
+    jumpFlash: 0
   };
 
   // ---------- Утилиты ----------
   const clamp = (v, a, b) => v < a ? a : v > b ? b : v;
   const randRange = (a, b) => a + Math.random() * (b - a);
 
-  // Требуемое число лучей для активации воронки в зависимости от прогресса (0..1)
   function requiredBeamsForWormhole(progress) {
-    // Ближе к Марсу — дороже. От 3 до 12 лучей.
     const base = 3;
     const span = 9;
     return Math.round(base + span * clamp(progress, 0, 1));
@@ -149,16 +199,11 @@
     });
   }
 
-  // Воронка: появляется один раз за полёт в случайной части пути
   function maybeSpawnWormhole() {
     if (state.wormholeSpawnedThisTrip || state.wormhole) return;
-
-    // Случайная точка маршрута: от 20% до 80%
     const trigger = randRange(0.2, 0.8);
     if (state.progress < trigger) return;
-
     state.wormholeSpawnedThisTrip = true;
-
     const r = clamp(Math.min(W, H) * 0.09, 34, 56);
     state.wormhole = {
       type: "wormhole",
@@ -238,18 +283,15 @@
         wh.requiredBeams = required;
 
         if (state.beamsCollected >= required) {
-          // Активируем гравитационный прыжок
           wh.activated = true;
           state.beamsCollected -= required;
           hudBeamsValue.textContent = state.beamsCollected;
 
-          // Ускоряем прогресс на 25%
           state.progress = clamp(state.progress + 0.25, 0, 0.999);
           state.elapsed = state.progress * getActualTripDuration();
 
           state.jumpFlash = 1;
         }
-        // Если лучей не хватило — пролетаем насквозь, воронка исчезает ниже
       }
     }
 
@@ -259,7 +301,9 @@
   }
 
   function getActualTripDuration() {
-    return state.config.tripDuration * state.shipConfig.tripTimeMultiplier;
+    return state.config.tripDuration
+         * state.shipConfig.tripTimeMultiplier
+         * state.planetConfig.durationMultiplier;
   }
 
   function updateProgressAndBattery(dt) {
@@ -311,21 +355,73 @@
       ctx.fillRect(sx, sy, size, size);
     }
 
+    drawTargetPlanet();
+
+    if (state.jumpFlash > 0) {
+      ctx.fillStyle = "rgba(140, 220, 255, " + (state.jumpFlash * 0.35) + ")";
+      ctx.fillRect(0, 0, W, H);
+    }
+  }
+
+  function drawTargetPlanet() {
+    const p = state.planetConfig;
     const mx = W / 2;
     const my = 60;
-    const mr = 22;
-    const grad = ctx.createRadialGradient(mx - mr * 0.3, my - mr * 0.3, mr * 0.2, mx, my, mr);
-    grad.addColorStop(0, "#ffb27a");
-    grad.addColorStop(0.7, "#c85a3a");
-    grad.addColorStop(1, "#5a2418");
+    const mr = p.radius;
+
+    // свечение
+    const glow = ctx.createRadialGradient(mx, my, mr * 0.5, mx, my, mr * 2.2);
+    glow.addColorStop(0, "rgba(255, 220, 160, 0.25)");
+    glow.addColorStop(1, "rgba(255, 220, 160, 0)");
+    ctx.fillStyle = glow;
+    ctx.beginPath();
+    ctx.arc(mx, my, mr * 2.2, 0, Math.PI * 2);
+    ctx.fill();
+
+    // кольца сзади
+    if (p.hasRing) {
+      ctx.save();
+      ctx.translate(mx, my);
+      ctx.rotate(-0.32);
+      ctx.beginPath();
+      ctx.ellipse(0, 0, mr * 2.4, mr * 0.75, 0, Math.PI, Math.PI * 2);
+      ctx.strokeStyle = "rgba(220, 200, 150, 0.85)";
+      ctx.lineWidth = Math.max(2, mr * 0.18);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.ellipse(0, 0, mr * 2.9, mr * 0.95, 0, Math.PI, Math.PI * 2);
+      ctx.strokeStyle = "rgba(180, 160, 110, 0.6)";
+      ctx.lineWidth = Math.max(1.5, mr * 0.1);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    // планета
+    const grad = ctx.createRadialGradient(mx - mr * 0.35, my - mr * 0.35, mr * 0.15, mx, my, mr);
+    grad.addColorStop(0, p.color1);
+    grad.addColorStop(0.6, p.color2);
+    grad.addColorStop(1, p.color3);
     ctx.fillStyle = grad;
     ctx.beginPath();
     ctx.arc(mx, my, mr, 0, Math.PI * 2);
     ctx.fill();
 
-    if (state.jumpFlash > 0) {
-      ctx.fillStyle = "rgba(140, 220, 255, " + (state.jumpFlash * 0.35) + ")";
-      ctx.fillRect(0, 0, W, H);
+    // кольца спереди
+    if (p.hasRing) {
+      ctx.save();
+      ctx.translate(mx, my);
+      ctx.rotate(-0.32);
+      ctx.beginPath();
+      ctx.ellipse(0, 0, mr * 2.4, mr * 0.75, 0, 0, Math.PI);
+      ctx.strokeStyle = "rgba(240, 220, 170, 0.9)";
+      ctx.lineWidth = Math.max(2, mr * 0.18);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.ellipse(0, 0, mr * 2.9, mr * 0.95, 0, 0, Math.PI);
+      ctx.strokeStyle = "rgba(200, 180, 130, 0.65)";
+      ctx.lineWidth = Math.max(1.5, mr * 0.1);
+      ctx.stroke();
+      ctx.restore();
     }
   }
 
@@ -395,7 +491,6 @@
     ctx.save();
     ctx.translate(wh.x, wh.y);
 
-    // Внешнее свечение
     const glow = ctx.createRadialGradient(0, 0, wh.r * 0.3, 0, 0, wh.r * 2.2);
     glow.addColorStop(0, "rgba(" + baseColor[0] + "," + baseColor[1] + "," + baseColor[2] + ",0.55)");
     glow.addColorStop(0.6, "rgba(" + baseColor[0] + "," + baseColor[1] + "," + baseColor[2] + ",0.18)");
@@ -405,7 +500,6 @@
     ctx.arc(0, 0, wh.r * 2.2, 0, Math.PI * 2);
     ctx.fill();
 
-    // Спиральные рукава
     ctx.rotate(wh.rot);
     const arms = 3;
     for (let a = 0; a < arms; a++) {
@@ -424,7 +518,6 @@
       ctx.stroke();
     }
 
-    // Тёмный центр
     const core = ctx.createRadialGradient(0, 0, 0, 0, 0, wh.r * 0.7);
     core.addColorStop(0, "rgba(5, 8, 18, 0.95)");
     core.addColorStop(0.7, "rgba(20, 30, 55, 0.6)");
@@ -436,14 +529,12 @@
 
     ctx.rotate(-wh.rot);
 
-    // Индикатор требования
     ctx.font = "bold " + Math.max(12, wh.r * 0.34) + "px 'Segoe UI', Arial, sans-serif";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillStyle = canActivate ? "#aef7c8" : "#ffd7d7";
     ctx.fillText(required + " ✦", 0, 0);
 
-    // Подпись
     ctx.font = "600 " + Math.max(9, wh.r * 0.22) + "px 'Segoe UI', Arial, sans-serif";
     ctx.fillStyle = canActivate ? "rgba(174,247,200,0.9)" : "rgba(200,200,220,0.7)";
     ctx.fillText(canActivate ? "ПРЫЖОК" : "нужно лучей", 0, wh.r * 0.95);
@@ -451,7 +542,6 @@
     ctx.restore();
   }
 
-  // Вспомогательная функция — рисует одно ромбовидное полотно паруса
   function drawSolarPanel(cx, cy, dx1, dy1, dx2, dy2, rot) {
     ctx.save();
     ctx.translate(cx, cy);
@@ -616,6 +706,56 @@
     state.rafId = requestAnimationFrame(loop);
   }
 
+  // ---------- Планеты: кнопки ----------
+  function renderPlanetButtons() {
+    planetsGrid.innerHTML = "";
+    const keys = PLANETS_BY_DIFFICULTY[state.difficulty] || [];
+    keys.forEach((key) => {
+      const p = PLANETS[key];
+      const btn = document.createElement("button");
+      btn.className = "btn planet-btn" + (key === state.planetKey ? " active" : "");
+      btn.dataset.planet = key;
+
+      const preview = document.createElement("div");
+      preview.className = "planet-preview";
+      const size = p.radius * 2;
+      preview.style.width = size + "px";
+      preview.style.height = size + "px";
+      preview.style.background =
+        "radial-gradient(circle at 30% 30%, " + p.color1 + ", " + p.color2 + " 55%, " + p.color3 + " 100%)";
+
+      if (p.hasRing) {
+        const ring = document.createElement("div");
+        ring.className = "ring";
+        ring.style.width = (p.radius * 2.6) + "px";
+        ring.style.height = (p.radius * 0.9) + "px";
+        ring.style.borderWidth = Math.max(2, p.radius * 0.18) + "px";
+        preview.appendChild(ring);
+      }
+
+      const name = document.createElement("span");
+      name.className = "planet-name";
+      name.textContent = p.label;
+
+      const desc = document.createElement("span");
+      desc.className = "planet-desc";
+      desc.textContent = p.desc;
+
+      btn.appendChild(preview);
+      btn.appendChild(name);
+      btn.appendChild(desc);
+
+      btn.addEventListener("click", () => {
+        state.planetKey = key;
+        state.planetConfig = p;
+        document.querySelectorAll(".planet-btn").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+      });
+
+      planetsGrid.appendChild(btn);
+    });
+  }
+
   // ---------- Управление игрой ----------
   function startGame() {
     state.running = true;
@@ -625,7 +765,6 @@
     state.elapsed = 0;
     state.lastFrameTime = 0;
 
-    // сброс нового
     state.beamsCollected = 0;
     state.wormhole = null;
     state.wormholeSpawnedThisTrip = false;
@@ -650,9 +789,12 @@
     progressFill.style.width = "0%";
     progressValue.textContent = "100%";
     hudSailName.textContent = state.shipConfig.label;
+    hudPlanetName.textContent = state.planetConfig.label;
+    progressLabelEnd.textContent = state.planetConfig.label;
     hudBeamsValue.textContent = "0";
 
     menuScreen.classList.add("hidden");
+    planetScreen.classList.add("hidden");
     shipScreen.classList.add("hidden");
     resultScreen.classList.add("hidden");
 
@@ -668,14 +810,18 @@
     }
 
     if (reason === "win") {
-      resultTitle.textContent = "Марс достигнут!";
-      resultText.textContent = "Сложность: " + state.config.label + " (Парус: " + state.shipConfig.label + "). Остаток заряда: " + Math.round(state.battery) + "%.";
+      resultTitle.textContent = state.planetConfig.label + " достигнут!";
+      resultText.textContent = "Сложность: " + state.config.label +
+        " (Парус: " + state.shipConfig.label + ", цель: " + state.planetConfig.label + "). " +
+        "Остаток заряда: " + Math.round(state.battery) + "%.";
     } else if (reason === "battery") {
       resultTitle.textContent = "Заряд исчерпан";
-      resultText.textContent = "Парус остался в дрейфе на " + Math.round(state.progress * 100) + "% пути к Марсу.";
+      resultText.textContent = "Парус остался в дрейфе на " + Math.round(state.progress * 100) +
+        "% пути к " + state.planetConfig.label + ".";
     } else if (reason === "asteroid") {
       resultTitle.textContent = "Столкновение!";
-      resultText.textContent = "Астероид разрушил парус на " + Math.round(state.progress * 100) + "% пути к Марсу.";
+      resultText.textContent = "Астероид разрушил парус на " + Math.round(state.progress * 100) +
+        "% пути к " + state.planetConfig.label + ".";
     }
     if (resultBeams) {
       resultBeams.textContent = "Собрано лучей света: " + state.beamsCollected;
@@ -692,6 +838,7 @@
     }
     resultScreen.classList.add("hidden");
     shipScreen.classList.add("hidden");
+    planetScreen.classList.add("hidden");
     menuScreen.classList.remove("hidden");
   }
 
@@ -700,8 +847,12 @@
     btn.addEventListener("click", () => {
       state.difficulty = btn.dataset.difficulty;
       state.config = DIFFICULTY[state.difficulty];
+      const allowed = PLANETS_BY_DIFFICULTY[state.difficulty];
+      state.planetKey = allowed[0];
+      state.planetConfig = PLANETS[state.planetKey];
+      renderPlanetButtons();
       menuScreen.classList.add("hidden");
-      shipScreen.classList.remove("hidden");
+      planetScreen.classList.remove("hidden");
     });
   });
 
@@ -715,13 +866,18 @@
   });
 
   startGameBtn.addEventListener("click", startGame);
-  backToDiffBtn.addEventListener("click", () => {
-    shipScreen.classList.add("hidden");
+  backToDiffBtn2.addEventListener("click", () => {
+    planetScreen.classList.add("hidden");
     menuScreen.classList.remove("hidden");
+  });
+  backToPlanetBtn.addEventListener("click", () => {
+    shipScreen.classList.add("hidden");
+    planetScreen.classList.remove("hidden");
   });
   restartBtn.addEventListener("click", startGame);
   menuBtn.addEventListener("click", goToMenu);
 
   // ---------- Init ----------
+  state.planetConfig = PLANETS[state.planetKey];
   resize();
 })();
