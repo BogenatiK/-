@@ -28,6 +28,7 @@
   const startGameBtn = document.getElementById("start-game-btn");
   const backToDiffBtn2 = document.getElementById("back-to-diff-btn-2");
   const backToPlanetBtn = document.getElementById("back-to-planet-btn");
+  const toShipBtn = document.getElementById("to-ship-btn");
   const planetsGrid = document.getElementById("planets-grid");
 
   // ---------- Размеры ----------
@@ -750,6 +751,9 @@
         state.planetConfig = p;
         document.querySelectorAll(".planet-btn").forEach(b => b.classList.remove("active"));
         btn.classList.add("active");
+        // сразу переходим к выбору паруса
+        planetScreen.classList.add("hidden");
+        shipScreen.classList.remove("hidden");
       });
 
       planetsGrid.appendChild(btn);
@@ -866,6 +870,10 @@
   });
 
   startGameBtn.addEventListener("click", startGame);
+  toShipBtn.addEventListener("click", () => {
+    planetScreen.classList.add("hidden");
+    shipScreen.classList.remove("hidden");
+  });
   backToDiffBtn2.addEventListener("click", () => {
     planetScreen.classList.add("hidden");
     menuScreen.classList.remove("hidden");
