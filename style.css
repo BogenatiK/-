@@ -95,7 +95,6 @@ html, body {
   transition: width 0.15s linear;
 }
 
-/* Счётчик лучей */
 #hud-beams-value {
   color: #ffe27a;
   text-shadow: 0 0 10px rgba(255, 226, 122, 0.6);
@@ -346,3 +345,4 @@ html, body {
 
 @media (prefers-reduced-motion: reduce) {
   .btn, .overlay, #progress-fill, .battery-fill { transition: none; }
+}
